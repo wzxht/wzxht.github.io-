@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>手机交互式3D电路实验</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            overflow-x: hidden;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        h1 {
+            font-size: 1.8rem;
+            margin-bottom: 8px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        .description {
+            font-size: 1rem;
+            opacity: 0.9;
+            max-width: 400px;
+        }
+        
+        .circuit-container {
+            position: relative;
+            width: 100%;
+            max-width: 400px;
+            margin-bottom: 30px;
+        }
+        
+        #circuitCanvas {
+            width: 100%;
+            height: 300px;
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            backdrop-filter: blur(5px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            touch-action: none;
+        }
+        
+        .control-panel {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 18px;
+            padding: 20px;
+            width: 100%;
+            max-width: 400px;
+            backdrop-filter: blur(5px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+        
+        .slider-container {
+            margin-bottom: 20px;
+        }
+        
+        .slider-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-weight: 500;
+        }
+        
+        .slider {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 12px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 10px;
+            outline: none;
+        }
+        
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: #FF5722;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+            border: 2px solid #fff;
+        }
+        
+        .values {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .value-box {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 12px;
+            border-radius: 12px;
+            text-align: center;
+        }
+        
+        .value-label {
+            font-size: 0.9rem;
+            opacity: 0.8;
+            margin-bottom: 5px;
+        }
+        
+        .value {
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+        
+        .instructions {
+            margin-top: 25px;
+            background: rgba(255, 255, 255, 0.15);
+            padding: 15px;
+            border-radius: 15px;
+            font-size: 0.9rem;
+            max-width: 400px;
+        }
+        
+        .instructions h3 {
+            margin-bottom: 10px;
+            font-size: 1.1rem;
+        }
+        
+        .instructions ul {
+            padding-left: 20px;
+        }
+        
+        .instructions li {
+            margin-bottom: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>3D电路交互实验</h1>
+        <p class="description">滑动变阻器控制灯泡亮度 - 移动端优化版</p>
+    </div>
+    
+    <div class="circuit-container">
+        <canvas id="circuitCanvas"></canvas>
+    </div>
+    
+    <div class="control-panel">
+        <div class="slider-container">
+            <div class="slider-label">
+                <span>滑动变阻器电阻值：</span>
+                <span id="resistanceValue">50Ω</span>
+            </div>
+            <input type="range" min="0" max="100" value="50" class="slider" id="resistanceSlider">
+        </div>
+        
+        <div class="values">
+            <div class="value-box">
+                <div class="value-label">电流</div>
+                <div class="value" id="currentValue">0.10A</div>
+            </div>
+            <div class="value-box">
+                <div class="value-label">电压</div>
+                <div class="value" id="voltageValue">6.00V</div>
+            </div>
+            <div class="value-box">
+                <div class="value-label">功率</div>
+                <div class="value" id="powerValue">0.60W</div>
+            </div>
+            <div class="value-box">
+                <div class="value-label">亮度</div>
+                <div class="value" id="brightnessValue">50%</div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="instructions">
+        <h3>使用说明</h3>
+        <ul>
+            <li>拖动滑动变阻器滑块来改变电阻值（0-100Ω）</li>
+            <li>观察灯泡亮度随电阻值的变化</li>
+            <li>电阻越小，灯泡越亮；电阻越大，灯泡越暗</li>
+            <li>基于欧姆定律 V=IR 实时计算电路参数</li>
+        </ul>
+    </div>
+
+    <script>
+        // 获取Canvas和上下文
+        const canvas = document.getElementById('circuitCanvas');
+        const ctx = canvas.getContext('2d');
+        const resistanceSlider = document.getElementById('resistanceSlider');
+        
+        // 设置Canvas尺寸（考虑到设备像素比以实现清晰显示）
+        function setupCanvas() {
+            const dpr = window.devicePixelRatio || 1;
+            const rect = canvas.getBoundingClientRect();
+            
+            canvas.width = rect.width * dpr;
+            canvas.height = rect.height * dpr;
+            ctx.scale(dpr, dpr);
+        }
+        
+        // 电路参数
+        const batteryVoltage = 6; // 6V电池
+        let resistance = 50; // 初始电阻值
+        let current = batteryVoltage / resistance; // 初始电流
+        
+        // 响应式元件位置（根据Canvas大小动态计算）
+        let components = {};
+        
+        function calculatePositions() {
+            const width = canvas.getBoundingClientRect().width;
+            const height = canvas.getBoundingClientRect().height;
+            
+            components = {
+                battery: { x: width * 0.25, y: height * 0.5 },
+                resistor: { x: width * 0.55, y: height * 0.5 },
+                bulb: { x: width * 0.8, y: height * 0.5 }
+            };
+        }
+        
+        // 绘制具有3D效果的电池
+        function drawBattery() {
+            const { x, y } = components.battery;
+            const size = Math.min(canvas.width, canvas.height) * 0.08;
+            
+            // 电池主体（3D圆柱效果）
+            ctx.beginPath();
+            const gradient = ctx.createLinearGradient(x - size, y - size*2, x + size, y + size*2);
+            gradient.addColorStop(0, '#f1c40f');
+            gradient.addColorStop(1, '#d35400');
+            ctx.fillStyle = gradient;
+            
+            // 绘制圆柱形电池主体
+            ctx.beginPath();
+            ctx.ellipse(x, y - size*1.25, size, size/4, 0, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.beginPath();
+            ctx.rect(x - size, y - size*1.25, size*2, size*2.5);
+            ctx.fill();
+            
+            ctx.beginPath();
+            ctx.ellipse(x, y + size*1.25, size, size/4, 0, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // 电池正极（顶部）
+            ctx.beginPath();
+            ctx.fillStyle = '#7f8c8d';
+            ctx.rect(x - size/2, y - size*1.6, size, size*0.4);
+            ctx.fill();
+            
+            // 电池标签
+            ctx.font = "bold " + (size/2) + "px Arial";
+            ctx.fillStyle = "#2c3e50";
+            ctx.textAlign = "center";
+            ctx.fillText("6V", x, y);
+        }
+        
+        // 绘制滑动变阻器
+        function drawResistor() {
+            const { x, y } = components.resistor;
+            const size = Math.min(canvas.width, canvas.height) * 0.07;
+            
+            // 电阻主体（3D效果）
+            ctx.beginPath();
+            const gradient = ctx.createLinearGradient(x - size*2, y - size, x + size*2, y + size);
+            gradient.addColorStop(0, '#95a5a6');
+            gradient.addColorStop(0.5, '#ecf0f1');
+            gradient.addColorStop(1, '#95a5a6');
+            ctx.fillStyle = gradient;
+            
+            // 电阻主体
+            ctx.beginPath();
+            ctx.roundRect(x - size*1.5, y - size, size*3, size*2, 10);
+            ctx.fill();
+            ctx.strokeStyle = '#34495e';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            
+            // 电阻线圈（3D效果）
+            ctx.strokeStyle = '#e74c3c';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(x - size, y);
+            ctx.lineTo(x, y);
+            ctx.moveTo(x + size/3, y);
+            ctx.lineTo(x + size, y);
+            ctx.stroke();
+            
+            // 滑动触点
+            const sliderPos = x - size*1.5 + (resistance / 100) * (size*3);
+            ctx.beginPath();
+            ctx.fillStyle = '#3498db';
+            ctx.arc(sliderPos, y, size/2, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#2c3e50';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            
+            // 电阻标签
+            ctx.font = "bold " + (size/2) + "px Arial";
+            ctx.fillStyle = "#2c3e50";
+            ctx.textAlign = "center";
+            ctx.fillText(`${resistance}Ω`, x, y + size*2.5);
+        }
+        
+        // 绘制灯泡（亮度随电流变化）
+        function drawBulb() {
+            const { x, y } = components.bulb;
+            const size = Math.min(canvas.width, canvas.height) * 0.1;
+            
+            // 根据电流计算灯泡亮度（0-1范围）
+            const brightness = Math.min(1, current * 2);
+            
+            // 灯泡发光效果（辉光）
+            if (brightness > 0.1) {
+                const glowRadius = size + brightness * size*1.5;
+                const gradient = ctx.createRadialGradient(x, y, 0, x, y, glowRadius);
+                gradient.addColorStop(0, `rgba(255, 204, 0, ${brightness * 0.6})`);
+                gradient.addColorStop(1, 'rgba(255, 204, 0, 0)');
+                
+                ctx.beginPath();
+                ctx.fillStyle = gradient;
+                ctx.arc(x, y, glowRadius, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            
+            // 灯泡玻璃外壳
+            ctx.beginPath();
+            const bulbGradient = ctx.createRadialGradient(x, y - size/5, 0, x, y, size);
+            bulbGradient.addColorStop(0, `rgba(255, 255, 255, ${0.3 + brightness * 0.7})`);
+            bulbGradient.addColorStop(1, `rgba(200, 200, 200, ${0.1 + brightness * 0.4})`);
+            
+            ctx.fillStyle = bulbGradient;
+            ctx.arc(x, y, size, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.strokeStyle = '#7f8c8d';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            
+            // 灯泡灯丝（亮度随电流变化）
+            ctx.beginPath();
+            ctx.strokeStyle = `rgba(255, ${200 - brightness * 100}, 0, 1)`;
+            ctx.lineWidth = 2 + brightness * 2;
+            ctx.moveTo(x - size/2, y);
+            ctx.lineTo(x + size/2, y);
+            ctx.moveTo(x - size/4, y - size/4);
+            ctx.lineTo(x + size/4, y + size/4);
+            ctx.stroke();
+            
+            // 灯泡底座
+            ctx.beginPath();
+            ctx.fillStyle = '#7f8c8d';
+            ctx.rect(x - size/2, y + size*0.8, size, size*0.4);
+            ctx.fill();
+            
+            // 灯泡触点
+            ctx.beginPath();
+            ctx.fillStyle = '#2c3e50';
+            ctx.arc(x, y + size, size/4, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // 灯泡标签
+            ctx.font = "bold " + (size/2) + "px Arial";
+            ctx.fillStyle = "#2c3e50";
+            ctx.textAlign = "center";
+            ctx.fillText("灯泡", x, y + size*2);
+        }
+        
+        // 绘制导线
+        function drawWires() {
+            ctx.beginPath();
+            ctx.strokeStyle = '#2c3e50';
+            ctx.lineWidth = 4;
+            
+            // 电池到电阻
+            ctx.moveTo(components.battery.x + Math.min(canvas.width, canvas.height) * 0.08, components.battery.y);
+            ctx.lineTo(components.resistor.x - Math.min(canvas.width, canvas.height) * 0.07, components.resistor.y);
+            
+            // 电阻到灯泡
+            ctx.moveTo(components.resistor.x + Math.min(canvas.width, canvas.height) * 0.07, components.resistor.y);
+            ctx.lineTo(components.bulb.x - Math.min(canvas.width, canvas.height) * 0.1, components.bulb.y);
+            
+            // 灯泡回电池
+            ctx.moveTo(components.bulb.x, components.bulb.y + Math.min(canvas.width, canvas.height) * 0.1);
+            ctx.lineTo(components.bulb.x, canvas.getBoundingClientRect().height * 0.8);
+            ctx.lineTo(components.battery.x, canvas.getBoundingClientRect().height * 0.8);
+            ctx.lineTo(components.battery.x, components.battery.y + Math.min(canvas.width, canvas.height) * 0.08);
+            
+            ctx.stroke();
+        }
+        
+        // 更新电路参数显示
+        function updateCircuitValues() {
+            current = batteryVoltage / (resistance + 10); // 加上10Ω的基础电阻
+            const power = current * batteryVoltage;
+            const brightness = Math.min(100, Math.round(current * 100 / 0.3));
+            
+            document.getElementById('currentValue').textContent = `${current.toFixed(2)}A`;
+            document.getElementById('voltageValue').textContent = `${batteryVoltage.toFixed(2)}V`;
+            document.getElementById('powerValue').textContent = `${power.toFixed(2)}W`;
+            document.getElementById('brightnessValue').textContent = `${brightness}%`;
+            document.getElementById('resistanceValue').textContent = `${resistance}Ω`;
+        }
+        
+        // 绘制整个电路
+        function drawCircuit() {
+            // 清除画布
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // 绘制背景
+            ctx.fillStyle = 'rgba(236, 240, 241, 0.2)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // 绘制电路元件
+            drawWires();
+            drawBattery();
+            drawResistor();
+            drawBulb();
+        }
+        
+        // 初始化
+        function init() {
+            setupCanvas();
+            calculatePositions();
+            updateCircuitValues();
+            drawCircuit();
+            
+            // 添加滑动变阻器事件监听
+            resistanceSlider.addEventListener('input', function() {
+                resistance = parseFloat(this.value);
+                updateCircuitValues();
+                drawCircuit();
+            });
+            
+            // 添加触摸事件支持（移动端优化）
+            let isDragging = false;
+            
+            resistanceSlider.addEventListener('touchstart', function(e) {
+                isDragging = true;
+                updateSlider(e);
+                e.preventDefault();
+            }, { passive: false });
+            
+            resistanceSlider.addEventListener('touchmove', function(e) {
+                if (isDragging) {
+                    updateSlider(e);
+                    e.preventDefault();
+                }
+            }, { passive: false });
+            
+            resistanceSlider.addEventListener('touchend', function() {
+                isDragging = false;
+            });
+            
+            function updateSlider(e) {
+                const rect = resistanceSlider.getBoundingClientRect();
+                let position;
+                
+                if (e.type.includes('touch')) {
+                    position = (e.touches[0].clientX - rect.left) / rect.width;
+                } else {
+                    position = (e.clientX - rect.left) / rect.width;
+                }
+                
+                position = Math.max(0, Math.min(1, position));
+                resistance = Math.round(position * 100);
+                resistanceSlider.value = resistance;
+                
+                updateCircuitValues();
+                drawCircuit();
+            }
+            
+            // 窗口大小改变时重新计算
+            window.addEventListener('resize', function() {
+                setupCanvas();
+                calculatePositions();
+                drawCircuit();
+            });
+        }
+        
+        // 启动仿真
+        window.onload = init;
+    </script>
+</body>
+</html>
