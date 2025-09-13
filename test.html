@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D电路交互实验：滑动变阻器与灯泡亮度</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+        
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        
+        .description {
+            color: #34495e;
+            text-align: center;
+            max-width: 600px;
+            margin-bottom: 20px;
+        }
+        
+        #simulationContainer {
+            position: relative;
+            margin-bottom: 25px;
+        }
+        
+        #circuitCanvas {
+            background-color: #fff;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+        }
+        
+        .control-panel {
+            background-color: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            width: 600px;
+            max-width: 100%;
+        }
+        
+        .slider-container {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .slider-container label {
+            margin-right: 15px;
+            font-weight: 500;
+            min-width: 120px;
+        }
+        
+        input[type="range"] {
+            flex-grow: 1;
+            height: 6px;
+            background: #ddd;
+            border-radius: 3px;
+            outline: none;
+            -webkit-appearance: none;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            background: #3498db;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb:hover {
+            background: #2980b9;
+        }
+        
+        .values {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 15px;
+            font-size: 14px;
+            color: #7f8c8d;
+        }
+        
+        .instructions {
+            background-color: #fff8e1;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #ffd600;
+            margin-top: 20px;
+            max-width: 600px;
+        }
+        
+        .instructions h3 {
+            margin-top: 0;
+            color: #e65100;
+        }
+        
+        .instructions ul {
+            margin-bottom: 0;
+            padding-left: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>3D电路交互实验</h1>
+    <p class="description">调整滑动变阻器，观察灯泡亮度变化和电路参数实时变化</p>
+    
+    <div id="simulationContainer">
+        <canvas id="circuitCanvas" width="600" height="400"></canvas>
+    </div>
+    
+    <div class="control-panel">
+        <div class="slider-container">
+            <label for="resistanceSlider">滑动变阻器电阻值：</label>
+            <input type="range" id="resistanceSlider" min="0" max="100" value="50" step="1">
+        </div>
+        
+        <div class="values">
+            <span id="currentValue">电流: 0.20A</span>
+            <span id="voltageValue">电压: 6.00V</span>
+            <span id="resistanceValue">电阻: 30.0Ω</span>
+            <span id="powerValue">功率: 1.20W</span>
+        </div>
+    </div>
+    
+    <div class="instructions">
+        <h3>使用说明：</h3>
+        <ul>
+            <li>拖动滑动变阻器滑块来改变电阻值（0-100Ω）</li>
+            <li>观察灯泡亮度随电阻值的变化</li>
+            <li>查看实时更新的电路参数（电流、电压、电阻和功率）</li>
+            <li>电阻越小，灯泡越亮；电阻越大，灯泡越暗</li>
+        </ul>
+    </div>
+
+    <script>
+        // 获取Canvas和上下文
+        const canvas = document.getElementById('circuitCanvas');
+        const ctx = canvas.getContext('2d');
+        const resistanceSlider = document.getElementById('resistanceSlider');
+        
+        // 电路参数
+        const batteryVoltage = 6; // 6V电池
+        let resistance = 30; // 初始电阻值
+        let current = batteryVoltage / resistance; // 初始电流
+        
+        // 电路元件位置
+        const components = {
+            battery: { x: 100, y: 200 },
+            resistor: { x: 300, y: 200 },
+            bulb: { x: 450, y: 200 }
+        };
+        
+        // 绘制具有3D效果的电池
+        function drawBattery() {
+            const { x, y } = components.battery;
+            
+            // 电池主体（3D圆柱效果）
+            ctx.beginPath();
+            const gradient = ctx.createLinearGradient(x - 20, y - 40, x + 20, y + 40);
+            gradient.addColorStop(0, '#f1c40f');
+            gradient.addColorStop(1, '#d35400');
+            ctx.fillStyle = gradient;
+            
+            // 绘制圆柱形电池主体
+            ctx.beginPath();
+            ctx.ellipse(x, y - 25, 20, 5, 0, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.beginPath();
+            ctx.rect(x - 20, y - 25, 40, 50);
+            ctx.fill();
+            
+            ctx.beginPath();
+            ctx.ellipse(x, y + 25, 20, 5, 0, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // 电池正极（顶部）
+            ctx.beginPath();
+            ctx.fillStyle = '#7f8c8d';
+            ctx.rect(x - 8, y - 40, 16, 15);
+            ctx.fill();
+            
+            // 电池标签
+            ctx.font = "bold 14px Arial";
+            ctx.fillStyle = "#2c3e50";
+            ctx.textAlign = "center";
+            ctx.fillText("6V", x, y);
+            
+            // 电池极性标记
+            ctx.font = "bold 16px Arial";
+            ctx.fillText("+", x - 25, y - 5);
+            ctx.fillText("-", x - 25, y + 35);
+        }
+        
+        // 绘制滑动变阻器
+        function drawResistor() {
+            const { x, y } = components.resistor;
+            
+            // 电阻主体（3D效果）
+            ctx.beginPath();
+            const gradient = ctx.createLinearGradient(x - 40, y - 15, x + 40, y + 15);
+            gradient.addColorStop(0, '#95a5a6');
+            gradient.addColorStop(0.5, '#ecf0f1');
+            gradient.addColorStop(1, '#95a5a6');
+            ctx.fillStyle = gradient;
+            
+            // 电阻主体
+            ctx.beginPath();
+            ctx.roundRect(x - 30, y - 15, 60, 30, 10);
+            ctx.fill();
+            ctx.strokeStyle = '#34495e';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            
+            // 电阻线圈（3D效果）
+            ctx.strokeStyle = '#e74c3c';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(x - 20, y);
+            ctx.lineTo(x - 10, y);
+            ctx.moveTo(x - 5, y);
+            ctx.lineTo(x + 5, y);
+            ctx.moveTo(x + 10, y);
+            ctx.lineTo(x + 20, y);
+            ctx.stroke();
+            
+            // 滑动触点
+            const sliderPos = x - 30 + (resistance / 100) * 60;
+            ctx.beginPath();
+            ctx.fillStyle = '#3498db';
+            ctx.arc(sliderPos, y, 8, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#2c3e50';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            
+            // 电阻标签
+            ctx.font = "bold 14px Arial";
+            ctx.fillStyle = "#2c3e50";
+            ctx.textAlign = "center";
+            ctx.fillText(`${resistance}Ω`, x, y + 40);
+        }
+        
+        // 绘制灯泡（亮度随电流变化）
+        function drawBulb() {
+            const { x, y } = components.bulb;
+            
+            // 根据电流计算灯泡亮度（0-1范围）
+            const brightness = Math.min(1, current * 2);
+            
+            // 灯泡发光效果（辉光）
+            if (brightness > 0.1) {
+                const glowRadius = 20 + brightness * 30;
+                const gradient = ctx.createRadialGradient(x, y, 0, x, y, glowRadius);
+                gradient.addColorStop(0, `rgba(255, 204, 0, ${brightness * 0.6})`);
+                gradient.addColorStop(1, 'rgba(255, 204, 0, 0)');
+                
+                ctx.beginPath();
+                ctx.fillStyle = gradient;
+                ctx.arc(x, y, glowRadius, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            
+            // 灯泡玻璃外壳
+            ctx.beginPath();
+            const bulbGradient = ctx.createRadialGradient(x, y - 5, 0, x, y, 25);
+            bulbGradient.addColorStop(0, `rgba(255, 255, 255, ${0.3 + brightness * 0.7})`);
+            bulbGradient.addColorStop(1, `rgba(200, 200, 200, ${0.1 + brightness * 0.4})`);
+            
+            ctx.fillStyle = bulbGradient;
+            ctx.arc(x, y, 25, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.strokeStyle = '#7f8c8d';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            
+            // 灯泡灯丝（亮度随电流变化）
+            ctx.beginPath();
+            ctx.strokeStyle = `rgba(255, ${200 - brightness * 100}, 0, 1)`;
+            ctx.lineWidth = 2 + brightness * 2;
+            ctx.moveTo(x - 10, y);
+            ctx.lineTo(x + 10, y);
+            ctx.moveTo(x - 5, y - 5);
+            ctx.lineTo(x + 5, y + 5);
+            ctx.stroke();
+            
+            // 灯泡底座
+            ctx.beginPath();
+            ctx.fillStyle = '#7f8c8d';
+            ctx.rect(x - 15, y + 20, 30, 10);
+            ctx.fill();
+            
+            // 灯泡触点
+            ctx.beginPath();
+            ctx.fillStyle = '#2c3e50';
+            ctx.arc(x, y + 25, 5, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // 灯泡标签
+            ctx.font = "bold 14px Arial";
+            ctx.fillStyle = "#2c3e50";
+            ctx.textAlign = "center";
+            ctx.fillText("灯泡", x, y + 60);
+        }
+        
+        // 绘制导线
+        function drawWires() {
+            ctx.beginPath();
+            ctx.strokeStyle = '#2c3e50';
+            ctx.lineWidth = 4;
+            
+            // 电池到电阻
+            ctx.moveTo(components.battery.x + 20, components.battery.y);
+            ctx.lineTo(components.resistor.x - 30, components.resistor.y);
+            
+            // 电阻到灯泡
+            ctx.moveTo(components.resistor.x + 30, components.resistor.y);
+            ctx.lineTo(components.bulb.x - 25, components.bulb.y);
+            
+            // 灯泡回电池
+            ctx.moveTo(components.bulb.x, components.bulb.y + 25);
+            ctx.lineTo(components.bulb.x, 300);
+            ctx.lineTo(components.battery.x, 300);
+            ctx.lineTo(components.battery.x, components.battery.y + 25);
+            
+            ctx.stroke();
+            
+            // 绘制电流动画
+            drawCurrentAnimation();
+        }
+        
+        // 绘制电流动画
+        function drawCurrentAnimation() {
+            const animationOffset = (Date.now() % 2000) / 2000;
+            
+            ctx.strokeStyle = '#e74c3c';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([5, 15]);
+            ctx.lineDashOffset = -animationOffset * 40;
+            
+            // 电流路径
+            ctx.beginPath();
+            ctx.moveTo(components.battery.x + 20, components.battery.y);
+            ctx.lineTo(components.resistor.x - 30, components.resistor.y);
+            ctx.lineTo(components.resistor.x + 30, components.resistor.y);
+            ctx.lineTo(components.bulb.x - 25, components.bulb.y);
+            ctx.lineTo(components.bulb.x, components.bulb.y);
+            ctx.lineTo(components.bulb.x, 300);
+            ctx.lineTo(components.battery.x, 300);
+            ctx.lineTo(components.battery.x, components.battery.y + 25);
+            
+            ctx.stroke();
+            ctx.setLineDash([]);
+        }
+        
+        // 更新电路参数显示
+        function updateCircuitValues() {
+            current = batteryVoltage / resistance;
+            const power = current * batteryVoltage;
+            
+            document.getElementById('currentValue').textContent = `电流: ${current.toFixed(2)}A`;
+            document.getElementById('voltageValue').textContent = `电压: ${batteryVoltage.toFixed(2)}V`;
+            document.getElementById('resistanceValue').textContent = `电阻: ${resistance.toFixed(1)}Ω`;
+            document.getElementById('powerValue').textContent = `功率: ${power.toFixed(2)}W`;
+        }
+        
+        // 绘制整个电路
+        function drawCircuit() {
+            // 清除画布
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // 绘制背景
+            ctx.fillStyle = 'rgba(236, 240, 241, 0.5)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // 绘制电路元件
+            drawWires();
+            drawBattery();
+            drawResistor();
+            drawBulb();
+        }
+        
+        // 初始化
+        function init() {
+            updateCircuitValues();
+            drawCircuit();
+            
+            // 添加滑动变阻器事件监听
+            resistanceSlider.addEventListener('input', function() {
+                resistance = parseFloat(this.value);
+                updateCircuitValues();
+                drawCircuit();
+            });
+            
+            // 添加动画循环
+            function animate() {
+                drawCircuit();
+                requestAnimationFrame(animate);
+            }
+            
+            animate();
+        }
+        
+        // 启动仿真
+        init();
+    </script>
+</body>
+</html>
