@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>实际电源模型及其等效变换</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        h1 {
+            color: #333;
+        }
+        .description {
+            margin: 15px auto;
+            max-width: 800px;
+            line-height: 1.6;
+            text-align: left;
+            background-color: #fff;
+            padding: 15px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        #canvasContainer {
+            margin: 20px auto;
+        }
+        canvas {
+            border: 1px solid #ccc;
+            background-color: white;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        .controls {
+            margin: 15px auto;
+            max-width: 800px;
+            padding: 15px;
+            background-color: #fff;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        button {
+            padding: 8px 16px;
+            margin: 0 10px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        input {
+            padding: 5px;
+            margin: 0 5px;
+            width: 60px;
+            text-align: center;
+        }
+        .param-label {
+            font-weight: bold;
+            margin-right: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>实际电源模型及其等效变换</h1>
+    
+    <div class="description">
+        <p>此交互式演示展示了实际电源的两种模型：</p>
+        <ul>
+            <li><strong>实际电压源模型</strong>：由理想电压源（E）与内阻（r）串联组成。</li>
+            <li><strong>实际电流源模型</strong>：由理想电流源（I）与内阻（r）并联组成。</li>
+        </ul>
+        <p>根据电路理论，当满足​​理想电流源的电流值等于理想电压源的电压与其内阻的比值​​和​​电流源的内阻（电导）与电压源的内阻（电阻）互为倒数关系​​时，这两种模型在外部特性上是等效的，可以互相转换。</p>
+    </div>
+
+    <div class="controls">
+        <div>
+            <span class="param-label">理想电压源 E (V):</span>
+            <input type="number" id="voltageValue" min="1" max="100" value="10">
+            <span class="param-label">内阻 r (Ω):</span>
+            <input type="number" id="resistanceValue" min="1" max="100" value="2">
+            <span class="param-label">理想电流源 I (A):</span>
+            <input type="number" id="currentValue" min="1" max="100" value="5" disabled>
+            <button id="calculateBtn">计算等效电流</button>
+        </div>
+        <div style="margin-top: 15px;">
+            <button id="transformBtn">执行等效变换</button>
+            <button id="resetBtn">重置视图</button>
+        </div>
+    </div>
+
+    <div id="canvasContainer">
+        <canvas id="circuitCanvas" width="800" height="400"></canvas>
+    </div>
+
+    <script>
+        // 获取Canvas元素和上下文
+        const canvas = document.getElementById('circuitCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // 获取输入元素和按钮
+        const voltageInput = document.getElementById('voltageValue');
+        const resistanceInput = document.getElementById('resistanceValue');
+        const currentInput = document.getElementById('currentValue');
+        const calculateBtn = document.getElementById('calculateBtn');
+        const transformBtn = document.getElementById('transformBtn');
+        const resetBtn = document.getElementById('resetBtn');
+
+        // 电路状态
+        let circuitMode = 'voltage'; // 'voltage' 或 'current'
+        let sourceVoltage = 10;      // 理想电压源值 (V)
+        let resistance = 2;          // 内阻 (Ω)
+        let sourceCurrent = 5;        // 理想电流源值 (A)
+
+        // 初始化
+        drawCircuit();
+
+        // 事件监听
+        calculateBtn.addEventListener('click', calculateCurrent);
+        transformBtn.addEventListener('click', toggleCircuitMode);
+        resetBtn.addEventListener('click', resetCircuit);
+
+        // 绘制电路函数
+        function drawCircuit() {
+            // 清除画布
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // 设置绘图样式
+            ctx.lineWidth = 2;
+            ctx.strokeStyle = '#000';
+            ctx.fillStyle = '#000';
+            ctx.font = '14px Arial';
+            
+            if (circuitMode === 'voltage') {
+                drawVoltageSourceModel();
+            } else {
+                drawCurrentSourceModel();
+            }
+        }
+
+        // 绘制电压源模型（理想电压源与内阻串联）
+        function drawVoltageSourceModel() {
+            // 绘制标题 - 坐标已调整 (250+250=500, 30+20=50)
+            ctx.fillText('实际电压源模型 (理想电压源与内阻串联)', 250, 50);
+            
+            // 绘制理想电压源（电池符号）
+            ctx.beginPath();
+            ctx.moveTo(450, 170); // 左侧导线 - 坐标已调整 (200+250=450, 150+20=170)
+            ctx.lineTo(430, 170); // 坐标已调整 (180+250=430, 150+20=170)
+            
+            // 电池正极（长线）
+            ctx.moveTo(430, 150); // 坐标已调整 (180+250=430, 130+20=150)
+            ctx.lineTo(430, 190); // 坐标已调整 (180+250=430, 170+20=190)
+            
+            // 电池负极（短线）
+            ctx.moveTo(410, 160); // 坐标已调整 (160+250=410, 140+20=160)
+            ctx.lineTo(410, 180); // 坐标已调整 (160+250=410, 160+20=180)
+            
+            // 电池外壳
+            ctx.moveTo(410, 150); // 坐标已调整 (160+250=410, 130+20=150)
+            ctx.lineTo(410, 190); // 坐标已调整 (160+250=410, 170+20=190)
+            ctx.moveTo(430, 150); // 坐标已调整 (180+250=430, 130+20=150)
+            ctx.lineTo(430, 190); // 坐标已调整 (180+250=430, 170+20=190)
+            
+            // 右侧导线
+            ctx.moveTo(410, 170); // 坐标已调整 (160+250=410, 150+20=170)
+            ctx.lineTo(380, 170); // 坐标已调整 (130+250=380, 150+20=170)
+            ctx.stroke();
+            
+            // 标注电压源 - 坐标已调整 (145+250=395, 190+20=210)
+            ctx.fillText('E = ' + sourceVoltage + 'V', 395, 210);
+            
+            // 绘制电阻
+            ctx.beginPath();
+            ctx.moveTo(350, 170); // 坐标已调整 (100+250=350, 150+20=170)
+            ctx.lineTo(350, 170); // 坐标已调整 (100+250=350, 150+20=170)
+            
+            // 电阻体
+            ctx.rect(340, 160, 40, 20); // 坐标已调整 (90+250=340, 140+20=160)
+            
+            // 右侧导线
+            ctx.moveTo(340, 170); // 坐标已调整 (90+250=340, 150+20=170)
+            ctx.lineTo(300, 170); // 坐标已调整 (50+250=300, 150+20=170)
+            ctx.stroke();
+            
+            // 标注电阻 - 坐标已调整 (85+250=335, 190+20=210)
+            ctx.fillText('r = ' + resistance + 'Ω', 335, 210);
+            
+            // 绘制输出端
+            ctx.beginPath();
+            ctx.moveTo(300, 170); // 坐标已调整 (50+250=300, 150+20=170)
+            ctx.lineTo(300, 220); // 坐标已调整 (50+250=300, 200+20=220)
+            ctx.moveTo(450, 170); // 坐标已调整 (200+250=450, 150+20=170)
+            ctx.lineTo(450, 220); // 坐标已调整 (200+250=450, 200+20=220)
+            ctx.stroke();
+            
+            // 标注输出端
+            ctx.beginPath();
+            ctx.arc(300, 220, 5, 0, Math.PI * 2); // 坐标已调整 (50+250=300, 200+20=220)
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(450, 220, 5, 0, Math.PI * 2); // 坐标已调整 (200+250=450, 200+20=220)
+            ctx.fill();
+            
+            ctx.fillText('A', 295, 250); // 坐标已调整 (45+250=295, 230+20=250)
+            ctx.fillText('B', 445, 250); // 坐标已调整 (195+250=445, 230+20=250)
+        }
+
+        // 绘制电流源模型（理想电流源与内阻并联）
+        function drawCurrentSourceModel() {
+            // 绘制标题 - 坐标已调整 (250+250=500, 30+20=50)
+            ctx.fillText('实际电流源模型 (理想电流源与内阻并联)', 250, 50);
+            
+            // 绘制理想电流源（圆圈加箭头）
+            ctx.beginPath();
+            ctx.arc(370, 120, 20, 0, Math.PI * 2); // 坐标已调整 (120+250=370, 100+20=120)
+            ctx.stroke();
+            
+            // 绘制箭头
+            ctx.beginPath();
+            ctx.moveTo(370, 100); // 坐标已调整 (120+250=370, 80+20=100)
+            ctx.lineTo(370, 140); // 坐标已调整 (120+250=370, 120+20=140)
+            ctx.moveTo(365, 130); // 坐标已调整 (115+250=365, 110+20=130)
+            ctx.lineTo(370, 140); // 坐标已调整 (120+250=370, 120+20=140)
+            ctx.lineTo(375, 130); // 坐标已调整 (125+250=375, 110+20=130)
+            ctx.stroke();
+            
+            // 标注电流源 - 坐标已调整 (100+250=350, 65+20=85)
+            ctx.fillText('I = ' + sourceCurrent + 'A', 350, 85);
+            
+            // 绘制并联电阻
+            ctx.beginPath();
+            ctx.moveTo(350, 120); // 坐标已调整 (100+250=350, 100+20=120)
+            ctx.lineTo(300, 120); // 坐标已调整 (50+250=300, 100+20=120)
+
+            ctx.moveTo(300, 120); // 坐标已调整 (50+250=300, 100+20=120)
+            ctx.lineTo(300, 170); // 坐标已调整 (50+250=300, 150+20=170)
+
+            ctx.moveTo(390, 120); // 坐标已调整 (140+250=390, 100+20=120)
+            ctx.lineTo(450, 120); // 坐标已调整 (200+250=450, 100+20=120)
+
+            ctx.moveTo(450, 120); // 坐标已调整 (200+250=450, 100+20=120)
+            ctx.lineTo(450, 170); // 坐标已调整 (200+250=450, 150+20=170)
+
+            ctx.moveTo(393, 170); // 坐标已调整 (143+250=393, 150+20=170)
+            ctx.lineTo(450, 170); // 坐标已调整 (200+250=450, 150+20=170)
+            
+            // 电阻体
+            ctx.rect(353, 160, 40, 20); // 坐标已调整 (103+250=353, 140+20=160)
+            
+            // 右侧导线
+            ctx.moveTo(353, 170); // 坐标已调整 (103+250=353, 150+20=170)
+            ctx.lineTo(300, 170); // 坐标已调整 (50+250=300, 150+20=170)
+            ctx.stroke();
+            
+            // 标注电阻 - 坐标已调整 (95+250=345, 190+20=210)
+            ctx.fillText('r = ' + resistance + 'Ω', 345, 210);
+            
+            // 绘制输出端
+            ctx.beginPath();
+            ctx.moveTo(300, 170); // 坐标已调整 (50+250=300, 150+20=170)
+            ctx.lineTo(300, 220); // 坐标已调整 (50+250=300, 200+20=220)
+            ctx.moveTo(450, 170); // 坐标已调整 (200+250=450, 150+20=170)
+            ctx.lineTo(450, 220); // 坐标已调整 (200+250=450, 200+20=220)
+            ctx.stroke();
+            
+            // 标注输出端
+            ctx.beginPath();
+            ctx.arc(300, 220, 5, 0, Math.PI * 2); // 坐标已调整 (50+250=300, 200+20=220)
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(450, 220, 5, 0, Math.PI * 2); // 坐标已调整 (200+250=450, 200+20=220)
+            ctx.fill();
+            
+            ctx.fillText('A', 295, 250); // 坐标已调整 (45+250=295, 230+20=250)
+            ctx.fillText('B', 445, 250); // 坐标已调整 (195+250=445, 230+20=250)
+        }
+
+        // 计算等效电流
+        function calculateCurrent() {
+            sourceVoltage = parseFloat(voltageInput.value);
+            resistance = parseFloat(resistanceInput.value);
+            
+            // 计算等效电流源值: I = E / r[6,7](@ref)
+            sourceCurrent = sourceVoltage / resistance;
+            currentInput.value = sourceCurrent.toFixed(2);
+            
+            drawCircuit();
+        }
+
+        // 切换电路模式（等效变换）
+        function toggleCircuitMode() {
+            if (circuitMode === 'voltage') {
+                circuitMode = 'current';
+                transformBtn.textContent = '切换回电压源模型';
+            } else {
+                circuitMode = 'voltage';
+                transformBtn.textContent = '执行等效变换';
+            }
+            drawCircuit();
+        }
+
+        // 重置电路
+        function resetCircuit() {
+            voltageInput.value = 10;
+            resistanceInput.value = 2;
+            currentInput.value = 5;
+            sourceVoltage = 10;
+            resistance = 2;
+            sourceCurrent = 5;
+            circuitMode = 'voltage';
+            transformBtn.textContent = '执行等效变换';
+            drawCircuit();
+        }
+
+        // 响应输入变化
+        voltageInput.addEventListener('change', function() {
+            sourceVoltage = parseFloat(this.value);
+            drawCircuit();
+        });
+
+        resistanceInput.addEventListener('change', function() {
+            resistance = parseFloat(this.value);
+            drawCircuit();
+        });
+    </script>
+</body>
+</html>

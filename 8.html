@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>基尔霍夫电压定律交互演示</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+        }
+        .container {
+            background-color: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        #circuitCanvas {
+            display: block;
+            margin: 0 auto;
+            background-color: #fff;
+            border: 1px solid #ddd;
+        }
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-around;
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #f0f8ff;
+            border-radius: 8px;
+        }
+        .control-group {
+            margin: 10px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input[type="range"] {
+            width: 200px;
+        }
+        .values {
+            display: flex;
+            justify-content: space-around;
+            margin: 15px 0;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        .explanation {
+            background-color: #e8f4f8;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            line-height: 1.6;
+        }
+        .law-equation {
+            text-align: center;
+            font-size: 20px;
+            margin: 15px 0;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>基尔霍夫电压定律交互演示</h1>
+        
+        <div class="law-equation">
+            ΣV = 0 &nbsp; (V<sub>电源</sub> = V<sub>R1</sub> + V<sub>R2</sub>)
+        </div>
+        
+        <canvas id="circuitCanvas" width="800" height="500"></canvas>
+        
+        <div class="values">
+            <div>电源电压: <span id="sourceVoltageValue">5.0</span> V</div>
+            <div>R1电压: <span id="r1VoltageValue">3.3</span> V</div>
+            <div>R2电压: <span id="r2VoltageValue">1.7</span> V</div>
+            <div>电流: <span id="currentValue">0.33</span> A</div>
+        </div>
+        
+        <div class="controls">
+            <div class="control-group">
+                <label for="sourceVoltage">电源电压 (V)</label>
+                <input type="range" id="sourceVoltage" min="1" max="12" step="0.1" value="5">
+            </div>
+            <div class="control-group">
+                <label for="resistance1">电阻 R1 (Ω)</label>
+                <input type="range" id="resistance1" min="1" max="20" step="1" value="10">
+            </div>
+            <div class="control-group">
+                <label for="resistance2">电阻 R2 (Ω)</label>
+                <input type="range" id="resistance2" min="1" max="20" step="1" value="5">
+            </div>
+        </div>
+        
+        <div class="explanation">
+            <h3>基尔霍夫电压定律 (KVL)</h3>
+            <p>基尔霍夫电压定律指出：在任何一个闭合回路中，各元件上的电压升的代数和等于电压降的代数和。</p>
+            <p>在这个电路中：电源电压 = R1电压 + R2电压</p>
+            <p>调整上面的滑块可以改变电源电压或电阻值，观察电压和电流的变化。注意无论值如何变化，基尔霍夫电压定律始终成立。</p>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const canvas = document.getElementById('circuitCanvas');
+            const ctx = canvas.getContext('2d');
+            
+            // 获取控制元素
+            const sourceVoltageSlider = document.getElementById('sourceVoltage');
+            const resistance1Slider = document.getElementById('resistance1');
+            const resistance2Slider = document.getElementById('resistance2');
+            
+            // 获取显示值的元素
+            const sourceVoltageValue = document.getElementById('sourceVoltageValue');
+            const r1VoltageValue = document.getElementById('r1VoltageValue');
+            const r2VoltageValue = document.getElementById('r2VoltageValue');
+            const currentValue = document.getElementById('currentValue');
+            
+            // 电路参数
+            let sourceVoltage = 5.0;
+            let resistance1 = 10;
+            let resistance2 = 5;
+            let current = 0;
+            let r1Voltage = 0;
+            let r2Voltage = 0;
+            
+            // 计算电路值
+            function calculateCircuit() {
+                sourceVoltage = parseFloat(sourceVoltageSlider.value);
+                resistance1 = parseFloat(resistance1Slider.value);
+                resistance2 = parseFloat(resistance2Slider.value);
+                
+                // 计算电流 (I = V / R)
+                current = sourceVoltage / (resistance1 + resistance2);
+                
+                // 计算每个电阻的电压降 (V = I * R)
+                r1Voltage = current * resistance1;
+                r2Voltage = current * resistance2;
+                
+                // 更新显示的值
+                sourceVoltageValue.textContent = sourceVoltage.toFixed(2);
+                r1VoltageValue.textContent = r1Voltage.toFixed(2);
+                r2VoltageValue.textContent = r2Voltage.toFixed(2);
+                currentValue.textContent = current.toFixed(2);
+            }
+            
+            // 电路元件位置
+            const componentPositions = {
+                source: { x: 200, y: 250 },
+                resistor1: { x: 400, y: 150 },
+                resistor2: { x: 400, y: 350 },
+                voltmeter1: { x: 500, y: 120 },
+                voltmeter2: { x: 500, y: 320 }
+            };
+            
+            // 绘制电池
+            function drawBattery(x, y) {
+                ctx.save();
+                
+                // 电池主体
+                ctx.fillStyle = '#e0e0e0';
+                ctx.fillRect(x - 15, y - 40, 30, 80);
+                
+                // 电池正极
+                ctx.fillStyle = 'red';
+                ctx.fillRect(x - 10, y - 40, 20, 10);
+                
+                // 电池负极
+                ctx.fillStyle = 'black';
+                ctx.fillRect(x - 10, y + 30, 20, 10);
+                
+                // 电池符号
+                ctx.fillStyle = 'red';
+                ctx.font = '16px Arial';
+                ctx.fillText('+', x - 5, y - 20);
+                ctx.fillStyle = 'black';
+                ctx.fillText('-', x - 5, y + 15);
+                
+                // 电压标签
+                ctx.fillStyle = 'blue';
+                ctx.font = '14px Arial';
+                ctx.fillText(sourceVoltage.toFixed(1) + ' V', x - 25, y - 55);
+                
+                ctx.restore();
+            }
+            
+            // 绘制电阻
+            function drawResistor(x, y, resistance, label) {
+                ctx.save();
+                
+                // 电阻主体
+                ctx.fillStyle = '#a0a0a0';
+                ctx.fillRect(x - 30, y - 10, 60, 20);
+                
+                // 电阻线
+                ctx.strokeStyle = '#ff8c00';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                for (let i = -20; i <= 20; i += 10) {
+                    ctx.moveTo(x + i, y - 10);
+                    ctx.lineTo(x + i, y + 10);
+                }
+                ctx.stroke();
+                
+                // 电阻标签
+                ctx.fillStyle = 'green';
+                ctx.font = '14px Arial';
+                ctx.fillText(label + ' = ' + resistance + ' Ω', x - 25, y - 25);
+                
+                ctx.restore();
+            }
+            
+            // 绘制电压表
+            function drawVoltmeter(x, y, voltage, label) {
+                ctx.save();
+                
+                // 电压表主体
+                ctx.fillStyle = '#d0d0ff';
+                ctx.fillRect(x - 20, y - 15, 40, 30);
+                
+                // 电压表屏幕
+                ctx.fillStyle = '#000';
+                ctx.fillRect(x - 15, y - 10, 30, 20);
+                
+                // 电压读数
+                ctx.fillStyle = '#0f0';
+                ctx.font = '12px Arial';
+                ctx.fillText(voltage.toFixed(2) + ' V', x - 13, y + 3);
+                
+                // 电压表标签
+                ctx.fillStyle = 'purple';
+                ctx.font = '14px Arial';
+                ctx.fillText(label, x - 10, y - 30);
+                
+                ctx.restore();
+            }
+            
+            // 绘制导线
+            function drawWires() {
+                ctx.save();
+                ctx.strokeStyle = '#000';
+                ctx.lineWidth = 3;
+                
+                // 从电源正极到电阻1
+                ctx.beginPath();
+                ctx.moveTo(componentPositions.source.x, componentPositions.source.y - 40);
+                ctx.lineTo(componentPositions.source.x, 100);
+                ctx.lineTo(componentPositions.resistor1.x - 30, 100);
+                ctx.lineTo(componentPositions.resistor1.x - 30, componentPositions.resistor1.y);
+                ctx.stroke();
+                
+                // 从电阻1到电阻2
+                ctx.beginPath();
+                ctx.moveTo(componentPositions.resistor1.x + 30, componentPositions.resistor1.y);
+                ctx.lineTo(componentPositions.resistor1.x + 30, 200);
+                ctx.lineTo(componentPositions.resistor2.x + 30, 200);
+                ctx.lineTo(componentPositions.resistor2.x + 30, componentPositions.resistor2.y);
+                ctx.stroke();
+                
+                // 从电阻2到电源负极
+                ctx.beginPath();
+                ctx.moveTo(componentPositions.resistor2.x - 30, componentPositions.resistor2.y);
+                ctx.lineTo(componentPositions.resistor2.x - 30, 400);
+                ctx.lineTo(componentPositions.source.x, 400);
+                ctx.lineTo(componentPositions.source.x, componentPositions.source.y + 40);
+                ctx.stroke();
+                
+                ctx.restore();
+            }
+            
+            // 绘制连接电压表的导线
+            function drawVoltmeterWires() {
+                ctx.save();
+                ctx.strokeStyle = '#800080';
+                ctx.lineWidth = 2;
+                ctx.setLineDash([5, 5]);
+                
+                // 电压表1连接到电阻1
+                ctx.beginPath();
+                ctx.moveTo(componentPositions.resistor1.x - 30, componentPositions.resistor1.y);
+                ctx.lineTo(componentPositions.voltmeter1.x - 20, componentPositions.voltmeter1.y);
+                ctx.stroke();
+                
+                ctx.beginPath();
+                ctx.moveTo(componentPositions.resistor1.x + 30, componentPositions.resistor1.y);
+                ctx.lineTo(componentPositions.voltmeter1.x + 20, componentPositions.voltmeter1.y);
+                ctx.stroke();
+                
+                // 电压表2连接到电阻2
+                ctx.beginPath();
+                ctx.moveTo(componentPositions.resistor2.x - 30, componentPositions.resistor2.y);
+                ctx.lineTo(componentPositions.voltmeter2.x - 20, componentPositions.voltmeter2.y);
+                ctx.stroke();
+                
+                ctx.beginPath();
+                ctx.moveTo(componentPositions.resistor2.x + 30, componentPositions.resistor2.y);
+                ctx.lineTo(componentPositions.voltmeter2.x + 20, componentPositions.voltmeter2.y);
+                ctx.stroke();
+                
+                ctx.restore();
+            }
+            
+            // 电流点位置
+            let currentPoints = [
+                { x: componentPositions.source.x, y: componentPositions.source.y - 40, path: 0 },
+                { x: componentPositions.source.x, y: 100, path: 1 },
+                { x: componentPositions.resistor1.x - 30, y: 100, path: 2 },
+                { x: componentPositions.resistor1.x - 30, y: componentPositions.resistor1.y, path: 3 },
+                { x: componentPositions.resistor1.x + 30, y: componentPositions.resistor1.y, path: 4 },
+                { x: componentPositions.resistor1.x + 30, y: 200, path: 5 },
+                { x: componentPositions.resistor2.x + 30, y: 200, path: 6 },
+                { x: componentPositions.resistor2.x + 30, y: componentPositions.resistor2.y, path: 7 },
+                { x: componentPositions.resistor2.x - 30, y: componentPositions.resistor2.y, path: 8 },
+                { x: componentPositions.resistor2.x - 30, y: 400, path: 9 },
+                { x: componentPositions.source.x, y: 400, path: 10 },
+                { x: componentPositions.source.x, y: componentPositions.source.y + 40, path: 11 }
+            ];
+            
+            // 移动电流点的位置
+            let currentPosition = 0;
+            
+            // 绘制移动的电流点
+            function drawCurrentPoints() {
+                ctx.save();
+                
+                // 计算电流点移动速度（基于实际电流值）
+                const speed = 0.5 + current * 2;
+                currentPosition = (currentPosition + speed) % currentPoints.length;
+                
+                // 绘制所有电流点
+                for (let i = 0; i < 5; i++) {
+                    let idx = (Math.floor(currentPosition) + i) % currentPoints.length;
+                    let point = currentPoints[idx];
+                    
+                    ctx.fillStyle = i === 0 ? 'red' : 'orange';
+                    ctx.beginPath();
+                    ctx.arc(point.x, point.y, 5, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                
+                ctx.restore();
+            }
+            
+            // 绘制整个电路
+            function drawCircuit() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                
+                drawWires();
+                drawBattery(componentPositions.source.x, componentPositions.source.y);
+                drawResistor(componentPositions.resistor1.x, componentPositions.resistor1.y, resistance1, "R1");
+                drawResistor(componentPositions.resistor2.x, componentPositions.resistor2.y, resistance2, "R2");
+                drawVoltmeterWires();
+                drawVoltmeter(componentPositions.voltmeter1.x, componentPositions.voltmeter1.y, r1Voltage, "V1");
+                drawVoltmeter(componentPositions.voltmeter2.x, componentPositions.voltmeter2.y, r2Voltage, "V2");
+                drawCurrentPoints();
+                
+                requestAnimationFrame(drawCircuit);
+            }
+            
+            // 更新电路值并重绘
+            function updateCircuit() {
+                calculateCircuit();
+            }
+            
+            // 添加事件监听器
+            sourceVoltageSlider.addEventListener('input', updateCircuit);
+            resistance1Slider.addEventListener('input', updateCircuit);
+            resistance2Slider.addEventListener('input', updateCircuit);
+            
+            // 初始化并启动动画
+            calculateCircuit();
+            drawCircuit();
+        });
+    </script>
+</body>
+</html>
