@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>基尔霍夫电流定律电路模拟器</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .canvas-container {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+        #circuitCanvas {
+            background-color: #fff;
+            display: block;
+        }
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        .control-group {
+            background-color: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            min-width: 200px;
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+        }
+        h2 {
+            color: #3498db;
+            margin-top: 0;
+        }
+        h3 {
+            color: #2c3e50;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 5px;
+        }
+        label {
+            display: block;
+            margin: 8px 0 4px;
+        }
+        input[type="range"] {
+            width: 100%;
+        }
+        .value-display {
+            display: flex;
+            justify-content: space-between;
+        }
+        .explanation {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            margin-top: 20px;
+            line-height: 1.6;
+        }
+        .current-value {
+            font-weight: bold;
+            color: #e74c3c;
+        }
+        .voltage-value {
+            font-weight: bold;
+            color: #3498db;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>基尔霍夫电压定律电路模拟器</h1>
+        
+        <div class="canvas-container">
+            <canvas id="circuitCanvas" width="800" height="500"></canvas>
+        </div>
+        
+        <div class="controls">
+            <div class="control-group">
+                <h2>电源调节</h2>
+                <div>
+                    <label for="voltage1">电源 E₁ (V):</label>
+                    <input type="range" id="voltage1" min="1" max="20" value="12" step="1">
+                    <div class="value-display"><span>1V</span><span id="voltage1-value">12V</span><span>20V</span></div>
+                </div>
+                <div>
+                    <label for="voltage2">电源 E₂ (V):</label>
+                    <input type="range" id="voltage2" min="1" max="20" value="9" step="1">
+                    <div class="value-display"><span>1V</span><span id="voltage2-value">9V</span><span>20V</span></div>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <h2>电阻调节</h2>
+                <div>
+                    <label for="resistance1">电阻 R₁ (Ω):</label>
+                    <input type="range" id="resistance1" min="1" max="100" value="20" step="1">
+                    <div class="value-display"><span>1Ω</span><span id="resistance1-value">20Ω</span><span>100Ω</span></div>
+                </div>
+                <div>
+                    <label for="resistance2">电阻 R₂ (Ω):</label>
+                    <input type="range" id="resistance2" min="1" max="100" value="30" step="1">
+                    <div class="value-display"><span>1Ω</span><span id="resistance2-value">30Ω</span><span>100Ω</span></div>
+                </div>
+                <div>
+                    <label for="resistance3">电阻 R₃ (Ω):</label>
+                    <input type="range" id="resistance3" min="1" max="100" value="60" step="1">
+                    <div class="value-display"><span>1Ω</span><span id="resistance3-value">60Ω</span><span>100Ω</span></div>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <h2>电路状态</h2>
+                <p>总电流: <span id="total-current" class="current-value">0.60 A</span></p>
+                <p>支路1电流: <span id="current1" class="current-value">0.60 A</span></p>
+                <p>支路2电流: <span id="current2" class="current-value">0.30 A</span></p>
+                <p>支路3电流: <span id="current3" class="current-value">0.30 A</span></p>
+                <p>总电压: <span id="total-voltage" class="voltage-value">12.00 V</span></p>
+            </div>
+        </div>
+        
+        <div class="explanation">
+            <h3>基尔霍夫电压定律 (KVL) 说明</h3>
+            <p>基尔霍夫电压定律指出：在任何一个闭合回路中，各元件上的电压升的代数和等于电压降的代数和。</p>
+            <p>在本电路中：</p>
+            <ul>
+                <li>电源 E₁ 提供 12V 电压</li>
+                <li>三个并联电阻 R₁, R₂, R₃ 上的电压相同</li>
+                <li>根据欧姆定律，各支路电流 I = V / R</li>
+                <li>总电流 I_total = I₁ + I₂ + I₃</li>
+            </ul>
+            <p>尝试调节电源电压或电阻值，观察电路中电流的变化！</p>
+        </div>
+    </div>
+
+    <script>
+        // 获取Canvas和上下文
+        const canvas = document.getElementById('circuitCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        // 电路参数
+        let circuitParams = {
+            voltage1: 12,
+            voltage2: 9,
+            resistance1: 20,
+            resistance2: 30,
+            resistance3: 60,
+            current1: 0,
+            current2: 0,
+            current3: 0,
+            totalCurrent: 0,
+            totalVoltage: 12
+        };
+        
+        // 电流动画参数
+        let animationOffset = 0;
+        
+        // 更新电路计算
+        function updateCircuitCalculations() {
+            // 计算总电阻 (并联电阻)
+            const totalResistance = 1 / (1/circuitParams.resistance1 + 1/circuitParams.resistance2 + 1/circuitParams.resistance3);
+            
+            // 计算总电流 (使用最大电源电压)
+            circuitParams.totalVoltage = Math.max(circuitParams.voltage1, circuitParams.voltage2);
+            circuitParams.totalCurrent = circuitParams.totalVoltage / totalResistance;
+            
+            // 计算各支路电流
+            circuitParams.current1 = circuitParams.totalVoltage / circuitParams.resistance1;
+            circuitParams.current2 = circuitParams.totalVoltage / circuitParams.resistance2;
+            circuitParams.current3 = circuitParams.totalVoltage / circuitParams.resistance3;
+            
+            // 更新显示
+            document.getElementById('current1').textContent = circuitParams.current1.toFixed(2) + ' A';
+            document.getElementById('current2').textContent = circuitParams.current2.toFixed(2) + ' A';
+            document.getElementById('current3').textContent = circuitParams.current3.toFixed(2) + ' A';
+            document.getElementById('total-current').textContent = circuitParams.totalCurrent.toFixed(2) + ' A';
+            document.getElementById('total-voltage').textContent = circuitParams.totalVoltage.toFixed(2) + ' V';
+        }
+        
+        // 绘制电路
+        function drawCircuit() {
+            // 清除画布
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // 设置电路样式
+            ctx.lineWidth = 3;
+            ctx.strokeStyle = '#2c3e50';
+            ctx.fillStyle = '#2c3e50';
+            ctx.font = '14px Arial';
+            
+            // 定义电路节点坐标
+            const leftNodeX = 150;
+            const rightNodeX = 650;
+            const middleY = canvas.height / 2;
+            
+            // 绘制左节点
+            ctx.beginPath();
+            ctx.arc(leftNodeX, middleY, 5, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // 绘制右节点
+            ctx.beginPath();
+            ctx.arc(rightNodeX, middleY, 5, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // 绘制三条支路
+            drawBranch1(leftNodeX, rightNodeX, middleY);
+            drawBranch2(leftNodeX, rightNodeX, middleY);
+            drawBranch3(leftNodeX, rightNodeX, middleY);
+            
+            // 绘制连接线
+            drawConnectingWires(leftNodeX, rightNodeX, middleY);
+            
+            // 更新动画
+            animationOffset = (animationOffset + 0.02) % (Math.PI * 2);
+            
+            // 请求下一帧动画
+            requestAnimationFrame(drawCircuit);
+        }
+        
+        // 绘制第一条支路（顶部）
+        function drawBranch1(leftNodeX, rightNodeX, middleY) {
+            const branchY = middleY - 100;
+            
+            // 绘制导线
+            ctx.beginPath();
+            ctx.moveTo(leftNodeX, middleY);
+            ctx.lineTo(leftNodeX, branchY);
+            ctx.lineTo(leftNodeX + 150, branchY);
+            ctx.stroke();
+            
+            // 绘制电源
+            drawBattery(leftNodeX + 75, branchY, circuitParams.voltage1, 'E₁');
+            
+            ctx.beginPath();
+            ctx.moveTo(leftNodeX + 150, branchY);
+            ctx.lineTo(rightNodeX - 150, branchY);
+            ctx.stroke();
+            
+            // 绘制电阻
+            drawResistor(rightNodeX - 75, branchY, circuitParams.resistance1, 'R₁');
+            
+            ctx.beginPath();
+            ctx.moveTo(rightNodeX - 150, branchY);
+            ctx.lineTo(rightNodeX, branchY);
+            ctx.lineTo(rightNodeX, middleY);
+            ctx.stroke();
+            
+            // 绘制电流动画
+            drawCurrentAnimation(leftNodeX, branchY, rightNodeX, branchY, circuitParams.current1);
+        }
+        
+        // 绘制第二条支路（中间）
+        function drawBranch2(leftNodeX, rightNodeX, middleY) {
+            // 绘制导线
+            ctx.beginPath();
+            ctx.moveTo(leftNodeX, middleY);
+            ctx.lineTo(leftNodeX + 150, middleY);
+            ctx.stroke();
+            
+            // 绘制电源
+            drawBattery(leftNodeX + 75, middleY, circuitParams.voltage2, 'E₂');
+            
+            ctx.beginPath();
+            ctx.moveTo(leftNodeX + 150, middleY);
+            ctx.lineTo(rightNodeX - 150, middleY);
+            ctx.stroke();
+            
+            // 绘制电阻
+            drawResistor(rightNodeX - 75, middleY, circuitParams.resistance2, 'R₂');
+            
+            ctx.beginPath();
+            ctx.moveTo(rightNodeX - 150, middleY);
+            ctx.lineTo(rightNodeX, middleY);
+            ctx.stroke();
+            
+            // 绘制电流动画
+            drawCurrentAnimation(leftNodeX, middleY, rightNodeX, middleY, circuitParams.current2);
+        }
+        
+        // 绘制第三条支路（底部）
+        function drawBranch3(leftNodeX, rightNodeX, middleY) {
+            const branchY = middleY + 100;
+            
+            // 绘制导线
+            ctx.beginPath();
+            ctx.moveTo(leftNodeX, middleY);
+            ctx.lineTo(leftNodeX, branchY);
+            ctx.lineTo(leftNodeX + 150, branchY);
+            ctx.stroke();
+            
+            ctx.beginPath();
+            ctx.moveTo(leftNodeX + 150, branchY);
+            ctx.lineTo(rightNodeX - 150, branchY);
+            ctx.stroke();
+            
+            // 绘制电阻
+            drawResistor(rightNodeX - 75, branchY, circuitParams.resistance3, 'R₃');
+            
+            ctx.beginPath();
+            ctx.moveTo(rightNodeX - 150, branchY);
+            ctx.lineTo(rightNodeX, branchY);
+            ctx.lineTo(rightNodeX, middleY);
+            ctx.stroke();
+            
+            // 绘制电流动画
+            drawCurrentAnimation(leftNodeX, branchY, rightNodeX, branchY, circuitParams.current3);
+        }
+        
+        // 绘制连接线
+        function drawConnectingWires(leftNodeX, rightNodeX, middleY) {
+            // 绘制左侧连接线
+            ctx.beginPath();
+            ctx.moveTo(leftNodeX, middleY - 100);
+            ctx.lineTo(leftNodeX, middleY + 100);
+            ctx.stroke();
+            
+            // 绘制右侧连接线
+            ctx.beginPath();
+            ctx.moveTo(rightNodeX, middleY - 100);
+            ctx.lineTo(rightNodeX, middleY + 100);
+            ctx.stroke();
+        }
+        
+        // 绘制电池
+        function drawBattery(x, y, voltage, label) {
+            // 电池正极（长线）
+            ctx.beginPath();
+            ctx.moveTo(x, y - 15);
+            ctx.lineTo(x, y + 15);
+            ctx.lineWidth = 4;
+            ctx.stroke();
+            
+            // 电池负极（短线）
+            ctx.beginPath();
+            ctx.moveTo(x + 20, y - 10);
+            ctx.lineTo(x + 20, y + 10);
+            ctx.lineWidth = 4;
+            ctx.stroke();
+            
+            // 电池连接线
+            ctx.beginPath();
+            ctx.moveTo(x - 20, y);
+            ctx.lineTo(x, y);
+            ctx.moveTo(x + 20, y);
+            ctx.lineTo(x + 40, y);
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            
+            // 电池标签和电压
+            ctx.fillText(label, x - 5, y - 20);
+            ctx.fillText(voltage + 'V', x - 10, y + 30);
+        }
+        
+        // 绘制电阻
+        function drawResistor(x, y, resistance, label) {
+            // 电阻锯齿形状
+            ctx.beginPath();
+            ctx.moveTo(x - 30, y);
+            
+            for (let i = -25; i <= 25; i += 10) {
+                ctx.lineTo(x + i, y + (i % 20 === 0 ? -10 : 10));
+            }
+            
+            ctx.lineTo(x + 30, y);
+            ctx.stroke();
+            
+            // 电阻连接线
+            ctx.beginPath();
+            ctx.moveTo(x - 40, y);
+            ctx.lineTo(x - 30, y);
+            ctx.moveTo(x + 30, y);
+            ctx.lineTo(x + 40, y);
+            ctx.stroke();
+            
+            // 电阻标签和阻值
+            ctx.fillText(label, x - 5, y - 20);
+            ctx.fillText(resistance + 'Ω', x - 10, y + 30);
+        }
+        
+        // 绘制电流动画
+        function drawCurrentAnimation(startX, startY, endX, endY, current) {
+            // 根据电流大小调整动画速度
+            const speed = Math.min(1, Math.abs(current) / 2);
+            const animPosition = animationOffset * speed;
+            
+            // 计算路径上的点
+            const distance = Math.sqrt(Math.pow(endX - startX, 2) + Math.pow(endY - startY, 2));
+            const unitX = (endX - startX) / distance;
+            const unitY = (endY - startY) / distance;
+            
+            // 绘制多个电子沿导线移动
+            const electronCount = 5;
+            for (let i = 0; i < electronCount; i++) {
+                const pos = (animPosition + (i / electronCount) * Math.PI * 2) % (Math.PI * 2);
+                const electronPos = (pos / (Math.PI * 2)) * distance;
+                
+                if (electronPos < distance) {
+                    const electronX = startX + unitX * electronPos;
+                    const electronY = startY + unitY * electronPos;
+                    
+                    // 绘制电子
+                    ctx.beginPath();
+                    ctx.arc(electronX, electronY, 4, 0, Math.PI * 2);
+                    ctx.fillStyle = '#e74c3c';
+                    ctx.fill();
+                    
+                    // 绘制电子运动方向指示
+                    ctx.beginPath();
+                    ctx.moveTo(electronX, electronY);
+                    ctx.lineTo(electronX + unitX * 8, electronY + unitY * 8);
+                    ctx.strokeStyle = '#e74c3c';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                }
+            }
+            
+            // 重置样式
+            ctx.fillStyle = '#2c3e50';
+            ctx.strokeStyle = '#2c3e50';
+            ctx.lineWidth = 3;
+        }
+        
+        // 初始化事件监听
+        function initEventListeners() {
+            // 电压滑块事件
+            document.getElementById('voltage1').addEventListener('input', function() {
+                circuitParams.voltage1 = parseInt(this.value);
+                document.getElementById('voltage1-value').textContent = circuitParams.voltage1 + 'V';
+                updateCircuitCalculations();
+            });
+            
+            document.getElementById('voltage2').addEventListener('input', function() {
+                circuitParams.voltage2 = parseInt(this.value);
+                document.getElementById('voltage2-value').textContent = circuitParams.voltage2 + 'V';
+                updateCircuitCalculations();
+            });
+            
+            // 电阻滑块事件
+            document.getElementById('resistance1').addEventListener('input', function() {
+                circuitParams.resistance1 = parseInt(this.value);
+                document.getElementById('resistance1-value').textContent = circuitParams.resistance1 + 'Ω';
+                updateCircuitCalculations();
+            });
+            
+            document.getElementById('resistance2').addEventListener('input', function() {
+                circuitParams.resistance2 = parseInt(this.value);
+                document.getElementById('resistance2-value').textContent = circuitParams.resistance2 + 'Ω';
+                updateCircuitCalculations();
+            });
+            
+            document.getElementById('resistance3').addEventListener('input', function() {
+                circuitParams.resistance3 = parseInt(this.value);
+                document.getElementById('resistance3-value').textContent = circuitParams.resistance3 + 'Ω';
+                updateCircuitCalculations();
+            });
+        }
+        
+        // 初始化函数
+        function init() {
+            updateCircuitCalculations();
+            initEventListeners();
+            drawCircuit();
+        }
+        
+        // 启动应用
+        init();
+    </script>
+</body>
+</html>
